@@ -48,6 +48,23 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Apply general rate limiter to API routes
 app.use('/api', generalLimiter);
 
+// Root landing route
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'CloudDeploy Containerized CI/CD Deployment Platform API is running',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      apiCatalog: '/api',
+      auth: '/api/auth',
+      applications: '/api/applications',
+      deployments: '/api/deployments',
+      monitoring: '/api/monitoring'
+    }
+  });
+});
+
 /**
  * Standard Kubernetes Liveness & Readiness Probes Endpoint
  * (Conforms to Section 13 of requirements)
