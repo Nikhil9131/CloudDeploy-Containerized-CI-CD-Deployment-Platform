@@ -78,12 +78,14 @@ app.get('/', (req, res) => {
     <h1>CloudDeploy Platform Backend</h1>
     <p>This is the <strong>Express REST API Server</strong> powering the CloudDeploy Containerized CI/CD Deployment Platform.</p>
     <div class="links">
-      <a class="link-item" href="/health" target="_blank"><span>🩺 Liveness / Readiness Health Check</span> <span>/health →</span></a>
-      <a class="link-item" href="/api" target="_blank"><span>📋 Interactive API Catalog</span> <span>/api →</span></a>
-      <a class="link-item" href="/api/applications" target="_blank"><span>📦 Applications Endpoint</span> <span>/api/applications →</span></a>
-      <a class="link-item" href="/api/deployments" target="_blank"><span>🚀 Deployments Endpoint</span> <span>/api/deployments →</span></a>
+      <a class="link-item" href="/health" target="_blank"><span>🩺 Liveness / Readiness Health Check</span> <span>/health (Public) →</span></a>
+      <a class="link-item" href="/api" target="_blank"><span>📋 Interactive API Catalog</span> <span>/api (Public) →</span></a>
+      <div class="link-item" style="opacity: 0.85; cursor: default;"><span>🔒 Applications Endpoint (Requires Login)</span> <span style="color: #94a3b8; font-size: 12px;">JWT Protected</span></div>
+      <div class="link-item" style="opacity: 0.85; cursor: default;"><span>🔒 Deployments Endpoint (Requires Login)</span> <span style="color: #94a3b8; font-size: 12px;">JWT Protected</span></div>
     </div>
-    <div class="footer">To view the visual user interface, open your deployed <strong>Frontend on Vercel</strong>.</div>
+    <div class="footer">
+      To manage Applications and Deployments, open your <a href="https://cloud-deploy-containerized-ci-cd-de.vercel.app" target="_blank" style="color: #38bdf8; text-decoration: underline; font-weight: 600;">Frontend Web UI on Vercel</a> and sign in.
+    </div>
   </div>
 </body>
 </html>`);
