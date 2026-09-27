@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: clouddeploy
+  labels:
+    app.kubernetes.io/name: clouddeploy
+    app.kubernetes.io/part-of: clouddeploy-platform
+    environment: production

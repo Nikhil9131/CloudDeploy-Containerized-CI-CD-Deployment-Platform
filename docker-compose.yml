@@ -1,0 +1,78 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: clouddeploy-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-clouddeploy}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-clouddeploy_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-clouddeploy_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clouddeploy -d clouddeploy_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - clouddeploy-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: clouddeploy-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-clouddeploy}:${POSTGRES_PASSWORD:-clouddeploy_secret}@postgres:5432/${POSTGRES_DB:-clouddeploy_db}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-clouddeploy_jwt_secret_production_key_super_secure_2026}
+      JWT_EXPIRES_IN: 24h
+      CORS_ORIGIN: http://localhost,http://localhost:80,http://localhost:3000,http://localhost:5173
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-clouddeploy-artifacts-prod-2026}
+      INFRASTRUCTURE_MODE: simulated
+      KUBERNETES_MODE: simulated
+    ports:
+      - "5000:5000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - clouddeploy-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: clouddeploy-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "3000:80"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - clouddeploy-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  clouddeploy-network:
+    driver: bridge

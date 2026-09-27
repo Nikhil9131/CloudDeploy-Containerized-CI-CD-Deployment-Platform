@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clouddeploy-config
+  namespace: clouddeploy
+  labels:
+    app.kubernetes.io/name: clouddeploy
+data:
+  NODE_ENV: "production"
+  PORT: "5000"
+  CORS_ORIGIN: "http://clouddeploy.local,http://localhost"
+  AWS_REGION: "us-east-1"
+  AWS_S3_BUCKET: "clouddeploy-artifacts-prod-2026"
+  AWS_ECR_REGISTRY: "123456789012.dkr.ecr.us-east-1.amazonaws.com"
+  INFRASTRUCTURE_MODE: "simulated"
+  KUBERNETES_MODE: "cluster"
+  RATE_LIMIT_WINDOW_MS: "900000"
+  RATE_LIMIT_MAX: "1000"

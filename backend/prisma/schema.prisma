@@ -1,0 +1,213 @@
+// This is your Prisma schema file for CloudDeploy
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  DEVELOPER
+}
+
+enum DeploymentStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+enum StageStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+enum LogLevel {
+  INFO
+  WARN
+  ERROR
+  DEBUG
+}
+
+enum AppHealthStatus {
+  HEALTHY
+  DEGRADED
+  UNHEALTHY
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  password     String
+  name         String
+  role         Role          @default(DEVELOPER)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  applications Application[]
+
+  @@map("users")
+}
+
+model Application {
+  id             String                 @id @default(uuid())
+  name           String
+  description    String?
+  gitRepo        String
+  branch         String                 @default("main")
+  dockerfilePath String                 @default("./Dockerfile")
+  dockerImage    String
+  environment    String                 @default("production")
+  namespace      String                 @default("default")
+  replicas       Int                    @default(2)
+  port           Int                    @default(80)
+  status         String                 @default("HEALTHY")
+  currentCommit  String?
+  currentVersion String?                @default("v1.0.0")
+  userId         String
+  user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  deployments    Deployment[]
+  environments   Environment[]
+  k8sDeployments KubernetesDeployment[]
+  healthChecks   ApplicationHealth[]
+
+  @@map("applications")
+}
+
+model Deployment {
+  id                 String             @id @default(uuid())
+  applicationId      String
+  application        Application        @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  version            String
+  commitSha          String
+  branch             String
+  dockerImage        String
+  status             DeploymentStatus   @default(PENDING)
+  triggerType        String             @default("MANUAL") // MANUAL, GITHUB_WEBHOOK, ROLLBACK
+  buildDuration      Int?               @default(0) // seconds
+  deploymentDuration Int?               @default(0) // seconds
+  startedAt          DateTime           @default(now())
+  completedAt        DateTime?
+  rolledBackFrom     String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  stages             DeploymentStage[]
+  logs               DeploymentLog[]
+  builds             Build[]
+  artifacts          DeploymentArtifact[]
+
+  @@map("deployments")
+}
+
+model DeploymentStage {
+  id           String      @id @default(uuid())
+  deploymentId String
+  deployment   Deployment  @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+  stageName    String
+  stageOrder   Int
+  status       StageStatus @default(PENDING)
+  startedAt    DateTime?
+  completedAt  DateTime?
+  duration     Int?        @default(0) // seconds
+  logs         String?
+  createdAt    DateTime    @default(now())
+
+  @@map("deployment_stages")
+}
+
+model Build {
+  id           String     @id @default(uuid())
+  deploymentId String
+  deployment   Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+  commitSha    String
+  dockerImage  String
+  dockerfile   String     @default("./Dockerfile")
+  duration     Int        @default(0)
+  status       String     @default("PENDING")
+  buildLogs    String?
+  imageSize    String?    @default("142MB")
+  createdAt    DateTime   @default(now())
+
+  @@map("builds")
+}
+
+model DeploymentLog {
+  id           String     @id @default(uuid())
+  deploymentId String
+  deployment   Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+  stage        String
+  level        LogLevel   @default(INFO)
+  message      String
+  timestamp    DateTime   @default(now())
+
+  @@map("deployment_logs")
+}
+
+model Environment {
+  id            String      @id @default(uuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  name          String      // production, staging, development
+  url           String?
+  isDefault     Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+
+  @@map("environments")
+}
+
+model KubernetesDeployment {
+  id                String      @id @default(uuid())
+  applicationId     String
+  application       Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  namespace         String      @default("default")
+  deploymentName    String
+  replicas          Int         @default(2)
+  availableReplicas Int         @default(2)
+  readyReplicas     Int         @default(2)
+  cpuUsage          String      @default("45m")
+  memoryUsage       String      @default("128Mi")
+  lastRestart       DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@map("kubernetes_deployments")
+}
+
+model ApplicationHealth {
+  id            String          @id @default(uuid())
+  applicationId String
+  application   Application     @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  status        AppHealthStatus @default(HEALTHY)
+  uptime        Float           @default(99.98) // percentage
+  responseTime  Int             @default(42)    // ms
+  errorRate     Float           @default(0.01)  // percentage
+  lastCheckedAt DateTime        @default(now())
+  createdAt     DateTime        @default(now())
+
+  @@map("application_health")
+}
+
+model DeploymentArtifact {
+  id           String     @id @default(uuid())
+  deploymentId String
+  deployment   Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+  artifactName String
+  s3Uri        String
+  s3Bucket     String
+  s3Key        String
+  sizeBytes    BigInt     @default(0)
+  checksum     String?
+  createdAt    DateTime   @default(now())
+
+  @@map("deployment_artifacts")
+}
